@@ -330,9 +330,10 @@ def cascadeMarkovMapReduce(filenames, debug = False, maxIterations = -1, maxTime
 filenames = glob.glob("data/*")
 print(filenames)
 debug = True
+maxTime = 90
 singleCore(filenames, debug = debug)
 branching(filenames, debug = debug)
 cascade4(filenames, debug = debug)
-branchingMarkovCycle(filenames, debug = debug)
-cascadeMarkovMapReduce(filenames, debug = debug, maxTime = 4)
+branchingMarkovCycle(filenames, debug = debug, maxTime = maxTime)
+cascadeMarkovMapReduce(filenames, debug = debug, maxTime = maxTime)
 
