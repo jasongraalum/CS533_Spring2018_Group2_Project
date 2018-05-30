@@ -6,8 +6,11 @@ import data
 import random
 import os
 import psutil
+import glob
 import time
 import multiprocessing
+import markov
+
 def listChunks(l, n = 2):
     c = []
     x = len(l) // n
@@ -46,7 +49,6 @@ def singleCore(filenames, debug = False):
                         len(sublist) > 0
                     for item in sublist
                 ]
-        r = myReducer.reducer()
         for d in mapd:
             r.reduce(d)
     if debug:
@@ -60,10 +62,10 @@ def branching(filenames, debug = False):
     split1 = chunkList(filenames)
     c = random.choice([0,1])
     if outref == 0:
-        message = "\ta"
+        message = "\tb"
         fns = split1[c]
     else:
-        message = "\tb"
+        message = "\ta"
         fns = split1[1 - c]
     lines = [item for sublist in [list(data.extractData(fn)) for fn in fns] for item in sublist]
     split2 = chunkList(lines)
@@ -76,6 +78,7 @@ def branching(filenames, debug = False):
             message = "\td"
     else:
         dlines = split2[1 - cc]
+
     prep = [item for sublist in 
                 [data.preprocess(d) for d in dlines] if
                     sublist is not None 
@@ -90,12 +93,16 @@ def branching(filenames, debug = False):
     for d in mapd:
         r.reduce(d)
     if debug:
-        printList = ["({} : {})".format(k,v) for k,v in random.sample(list(r.dictionary.iteritems()), 3)]
-        print(message + "({})".format(os.getpid()) + ": ({}|{}) {}".format(fn,len(list(r.dictionary.iteritems())),printList))
-    if(inref != 0):
+        print(message + "({})".format(os.getpid()) + ": ({}|{})".format(fn,len(list(r.dictionary.iteritems()))))
+    if(inref == 0):
+        os._exit(0)
+    else:
         os.wait()
-        if(outref != 0):
+        if(outref == 0):
+            os._exit(0)
+        else:
             os.wait()
+    return
 
 def cascade4(filenames, debug = False):
     if debug:
@@ -104,44 +111,228 @@ def cascade4(filenames, debug = False):
     finalDict = {}
     masterq = multiprocessing.Queue()
     lpq = multiprocessing.Queue()
+    mapq = multiprocessing.Queue()
+    redq = multiprocessing.Queue()
+
     lineProc = os.fork()
     if lineProc == 0:
-        mapq = multiprocessing.Queue()
-        time.sleep(0.2)
+        for toProcess in iter(lpq.get, None):
+            if(data.preprocess(toProcess) is not None):
+                for item in data.preprocess(toProcess):
+                    if len(item) > 0:
+                        mapq.put(item)
+        mapq.put(None)
+        time.sleep(0.3)
+        os._exit(0)
+    else:
         mapProc = os.fork()
-        if mapProc == 0:
-            redq = multiprocessing.Queue()
+        if(mapProc == 0):
+            for toMap in iter(mapq.get, None):
+                for item in mapper.map(toMap):
+                    if len(item) > 0:
+                        redq.put(item)
+            redq.put(None)
             time.sleep(0.2)
-            reducer = os.fork()
-            if(reducer == 0):
+            os._exit(0)
+        else:
+            reducProc = os.fork()
+            if(reducProc == 0):
                 r = myReducer.reducer()
                 for toReduce in iter(redq.get, None):
                     result = r.onlineReduce(toReduce)
                     masterq.put(result)
                 masterq.put(None)
+                time.sleep(0.1)
+                os._exit(0)
             else:
-                for toMap in iter(mapq.get, None):
-                    for item in mapper.map(toMap):
-                        redq.put(item)
-                redq.put(None)
-        else:
-            for toProcess in iter(lpq.get, None):
-                if(data.preprocess(toProcess) is not None):
-                    for item in data.preprocess(toProcess):
-                        mapq.put(item)
-            mapq.put(None)
-    else:
-        for l in lines:
-            lpq.put(l)
-        lpq.put(None)
-        for k,v in iter(masterq.get, None):
-            finalDict[k] = v
-        if debug:
-            for k,v in finalDict.iteritems():
-                print(k,v)
+                for l in lines:
+                    lpq.put(l)
+                lpq.put(None)
+                for k,v in iter(masterq.get, None):
+                    finalDict[k] = v
+            if debug:
+                l = list(finalDict.iteritems())
+                print("\t{} files processed. Dictionary of {} instances of {} words made".format(len(filenames), len(l), sum([v for _,v in l])))
+            os.wait()
+    return
 
-filenames = sys.argv[1:len(sys.argv)]
+def branchingMarkovCycle(filenames, debug = False, maxIterations = -1, maxTime = 0):
+    procs = listChunks(range(psutil.cpu_count()), 4)
+    initialT = time.time()
+    if debug:
+        print("Data extraction then markov chain sampling cycles for {} seconds:\n    a  \n   / \ \n  b   c\n /\nd".format(maxTime))
+    outref = os.fork()
+    split1 = chunkList(filenames)
+    c = random.choice([0,1])
+    if outref == 0:
+        message = "\tb"
+        fns = split1[c]
+        op = psutil.Process(os.getpid())
+        op.cpu_affinity(procs[0])
+    else:
+        message = "\ta"
+        fns = split1[1 - c]
+        ip = psutil.Process(os.getpid())
+        ip.cpu_affinity(procs[1])
+    lines = [item for sublist in [list(data.extractData(fn)) for fn in fns] for item in sublist]
+    split2 = chunkList(lines)
+    cc = random.choice([0,1])
+    inref = os.fork()
+    if inref == 0:
+        oip = psutil.Process(os.getpid())
+        oip.cpu_affinity(procs[2])
+        dlines = split2[cc]
+        message = "\tc"
+        if outref == 0:
+            iip = psutil.Process(os.getpid())
+            iip.cpu_affinity(procs[3])
+            message = "\td"
+    else:
+        dlines = split2[1 - cc]
+    ic = maxIterations
+    stopCondition = False;
+    nDatapoints = len(dlines)
+    prep = [l for l in [data.preprocess(d) for d in dlines] if l is not None]
+    split = [item for sublist in [list(data.splitify(line)) for line in prep] for item in sublist]
+    while(not stopCondition):
+        nGrams = [item for sublist in 
+                    [list(markov.nGrams(l)) for l in split] if
+                        len(sublist) > 0
+                    for item in sublist
+                ]
+        mod = markov.markovNGramModel()
+        for d in nGrams:
+            mod.update(d)
+        dlines = [mod.sampleGen() for _ in range(nDatapoints)]
+        split = [line.split(" ") for line in dlines]
+        if(maxIterations >= 0):
+            ic -= 1
+        if(ic == 0 or time.time() - initialT > maxTime):
+            stopCondition = True
+    if debug:
+        print(message + "({})".format(os.getpid()) + ": ({}|{})".format(fn,len(list(mod.model.iteritems()))))
+    if(inref == 0):
+        os._exit(0)
+    else:
+        os.wait()
+    if(outref == 0):
+        os._exit(0)
+    return
+
+def cascadeMarkovMapReduce(filenames, debug = False, maxIterations = -1, maxTime = 0):
+    procs = listChunks(range(psutil.cpu_count()), 4)
+    initialT = time.time()
+    if debug:
+        print("System of 4 processes with queues. map->reduce->markov->sample")
+    #Initial Setup: Get the data from the files and split it up
+    lines = [item for sublist in [list(data.extractData(fn)) for fn in filenames] for item in sublist]
+    prep = [l for l in [data.preprocess(d) for d in lines] if l is not None]
+    datalines = [" ".join(item) for sublist in [list(data.splitify(line)) for line in prep] for item in sublist]
+    initialSize = len(datalines)
+    finalDict = {}
+    dataq = multiprocessing.Queue()
+    markovq = multiprocessing.Queue()
+    selectq = multiprocessing.Queue()
+    redq = multiprocessing.Queue()
+    sampleq = multiprocessing.Queue()
+    for d in datalines:
+        dataq.put(d)
+
+    redProc = os.fork()
+    stopCondition = False;
+    if redProc == 0:
+        rp = psutil.Process(os.getpid())
+        rp.cpu_affinity(procs[0])
+        red = myReducer.reducer()
+        for toProcess in iter(redq.get, None):
+            val = [red.onlineReduce(m) for m in toProcess]
+            markovq.put(val)
+        markovq.put(None)
+        time.sleep(0.3)
+        os._exit(0)
+    else:
+        markovProc = os.fork()
+        if(markovProc == 0):
+            mp = psutil.Process(os.getpid())
+            mp.cpu_affinity(procs[1])
+            mod = markov.markovNGramModel()
+            for toModel in iter(markovq.get, None):
+                for ng in markov.nGrams([w for w,_ in toModel]):
+                    mod.update(ng)
+                scores = {word : score for word,score in toModel}
+                samples = [mod.sampleGen(w,) for w,_ in toModel]
+                selectq.put((samples,scores))
+            selectq.put(None)
+            time.sleep(0.2)
+            os._exit(0)
+        else:
+            selectProc = os.fork()
+            if(selectProc == 0):
+                sp = psutil.Process(os.getpid())
+                sp.cpu_affinity(procs[2])
+                r = myReducer.reducer()
+                for toScore in iter(selectq.get, None):
+                    samples = toScore[0]
+                    scores = toScore[1]
+                    sampleScores = []
+                    for s in [w for w in samples]:
+                        total = 0
+                        for w in samples:
+                            if w in scores:
+                                total += scores[w]
+                        sampleScores.append(total)
+                    scoredSamples = sorted(zip(samples,sampleScores), key=lambda t: t[1])
+                    coin = random.choice([1,-1])
+                    num = random.choice(range(len(samples)))
+                    for winner,score in scoredSamples[:coin*num]:
+                        sampleq.put(winner)
+                sampleq.put(None)
+                time.sleep(0.1)
+                os._exit(0)
+            else:
+                dp = psutil.Process(os.getpid())
+                dp.cpu_affinity(procs[3])
+                count = 0
+                t = 0
+                while(count < initialSize):
+                    count += 1
+                    toProcess = dataq.get()
+                    maps = [item for item in mapper.map(toProcess)]
+                    redq.put(maps)
+                    t = time.time() - initialT
+                    if(toProcess is None):
+                        stopCondition = True
+                if(debug):
+                    print("{} examples of real data processed in {} seconds".format(count, t))
+                    tick = 0
+                while(not stopCondition):
+                    if(debug):
+                        count += 1
+                        t = time.time() - initialT
+                        if(tick < t // 1):
+                            tick = t // 1
+                            print("Sample at {} seconds: {}".format(t, toProcess))
+                    if(toProcess is None):
+                        stopCondition = True
+                    if(t > maxTime):
+                        stopCondition = True
+                    toProcess = sampleq.get()
+                    maps = [item for item in mapper.map(toProcess)]
+                    redq.put(maps)
+                redq.put(None)
+                if debug:
+                    print("Last Sample: {}".format(toProcess))
+                    print("{} examples used, {} samples generated".format(initialSize, count))
+                os.wait()
+    return
+
+
+filenames = glob.glob("data/*")
+print(filenames)
 debug = True
 singleCore(filenames, debug = debug)
 branching(filenames, debug = debug)
 cascade4(filenames, debug = debug)
+branchingMarkovCycle(filenames, debug = debug)
+cascadeMarkovMapReduce(filenames, debug = debug, maxTime = 4)
+

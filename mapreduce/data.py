@@ -30,3 +30,13 @@ def preprocess(line):
         return None
     return words.split('\n')
 
+def splitify(lines):
+    for l in lines:
+        s = l.split(" ")
+        mc = []
+        for i in s:
+            k = i.strip(' ')
+            if(len(k) > 0):
+                mc.append(k)
+        if(len(mc) > 1):
+            yield mc

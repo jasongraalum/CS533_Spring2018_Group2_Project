@@ -2,6 +2,7 @@
 
 import sys
 from itertools import tee, islice, chain 
+import random
 
 class reducer:
     def __init__(self):
@@ -27,3 +28,8 @@ class reducer:
                 self.dictionary[k] = other.dictionary[k]
             else:
                 self.dictionary[k] += other.dictionary[k]
+
+    def sample(self):
+        choice = random.choice([item for sublist in
+                    [[k for _ in range(v)] for k,v in self.dictionary.iteritems()]
+                for item in sublist])
