@@ -53,7 +53,7 @@ def singleCore(filenames, debug = False):
             r.reduce(d)
     if debug:
         l = list(r.dictionary.iteritems())
-        print("\t{} files processed. Dictionary of {} instances of {} words made".format(len(filenames), len(l), sum([v for _,v in l])))
+        print("\t{} files processed. Dictionary of {} instances of {} words made".format(len(filenames), sum([v for _,v in l]), len(l)))
 
 def branching(filenames, debug = False):
     if debug:
@@ -223,7 +223,7 @@ def cascadeMarkovMapReduce(filenames, debug = False, maxIterations = -1, maxTime
     procs = listChunks(range(psutil.cpu_count()), 4)
     initialT = time.time()
     if debug:
-        print("System of 4 processes with queues. map->reduce->markov->sample")
+        print("System of 4 processes with queues. map->reduce->markov->sample, running for {} seconds".format(maxTime))
     #Initial Setup: Get the data from the files and split it up
     lines = [item for sublist in [list(data.extractData(fn)) for fn in filenames] for item in sublist]
     prep = [l for l in [data.preprocess(d) for d in lines] if l is not None]
