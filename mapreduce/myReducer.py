@@ -16,6 +16,11 @@ class reducer:
         else:
             self.dictionary[word] = count
 
+    def onlineReduce(self, line):
+        self.reduce(line)
+        word,count = line.split('\t')
+        return (word,self.dictionary[word])
+
     def merge(self, other):
         for k in other.dictionary:
             if self.dictionary[k] == None:
