@@ -26,7 +26,13 @@ int main(int argc, char ** argv) {
     long int loop_inc = strtol(argv[3],&argv[3],10);
 
     long int * arr = new long int[array_size];
+    for (long int i = 0; i < loop_count; i++) {
+        for (long int j = 0; j < loop_count; j++) {
+            for (long int k = 0; k < array_size; k=k+loop_inc) {
+                arr[i%array_size] = i;
+            }
+        }
+    }
     for (long int i = 0; i < loop_count; i=i+loop_inc) {
-        arr[i%array_size] = i;
     }
 }

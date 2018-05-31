@@ -25,9 +25,11 @@ int main(int argc, char ** argv) {
     int x;
 
     long int * arr = new long int[array_size];
-    for (long int i = 0; i < loop_count; i=i+loop_inc) {
-        // Alternate between two cache lines in L1
-        // Loop inc should be 8
-        arr[i%2] = i;
+    for (long int i = 0; i < loop_count; i++) {
+        for (long int j = 0; j < loop_count; j++) {
+            for (long int k = 0; k < array_size; k=k+loop_inc) {
+                arr[k%2] = k;
+            }
+        }
     }
 }
