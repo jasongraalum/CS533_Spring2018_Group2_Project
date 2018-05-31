@@ -169,11 +169,13 @@ def branchingMarkovCycle(filenames, debug = False, maxIterations = -1, maxTime =
         fns = split1[c]
         op = psutil.Process(os.getpid())
         op.cpu_affinity(procs[0])
+        op.nice(-10)
     else:
         message = "\ta"
         fns = split1[1 - c]
         ip = psutil.Process(os.getpid())
         ip.cpu_affinity(procs[1])
+#        ip.nice(-10)
     lines = [item for sublist in [list(data.extractData(fn)) for fn in fns] for item in sublist]
     split2 = chunkList(lines)
     cc = random.choice([0,1])
@@ -181,6 +183,7 @@ def branchingMarkovCycle(filenames, debug = False, maxIterations = -1, maxTime =
     if inref == 0:
         oip = psutil.Process(os.getpid())
         oip.cpu_affinity(procs[2])
+#        oip.nice(-10)
         dlines = split2[cc]
         message = "\tc"
         if outref == 0:
@@ -243,6 +246,7 @@ def cascadeMarkovMapReduce(filenames, debug = False, maxIterations = -1, maxTime
     if redProc == 0:
         rp = psutil.Process(os.getpid())
         rp.cpu_affinity(procs[0])
+#        rp.nice(-10)
         red = myReducer.reducer()
         for toProcess in iter(redq.get, None):
             val = [red.onlineReduce(m) for m in toProcess]
@@ -255,6 +259,7 @@ def cascadeMarkovMapReduce(filenames, debug = False, maxIterations = -1, maxTime
         if(markovProc == 0):
             mp = psutil.Process(os.getpid())
             mp.cpu_affinity(procs[1])
+#            mp.nice(-10)
             mod = markov.markovNGramModel()
             for toModel in iter(markovq.get, None):
                 for ng in markov.nGrams([w for w,_ in toModel]):
@@ -269,7 +274,7 @@ def cascadeMarkovMapReduce(filenames, debug = False, maxIterations = -1, maxTime
             selectProc = os.fork()
             if(selectProc == 0):
                 sp = psutil.Process(os.getpid())
-                sp.cpu_affinity(procs[2])
+#                sp.nice(-10)
                 r = myReducer.reducer()
                 for toScore in iter(selectq.get, None):
                     samples = toScore[0]
@@ -291,7 +296,7 @@ def cascadeMarkovMapReduce(filenames, debug = False, maxIterations = -1, maxTime
                 os._exit(0)
             else:
                 dp = psutil.Process(os.getpid())
-                dp.cpu_affinity(procs[3])
+#                dp.nice(-10)
                 count = 0
                 t = 0
                 while(count < initialSize):
