@@ -1,0 +1,33 @@
+./case1: Interrupt
+
+ Performance counter stats for './case1 4096 100000 8':
+
+        141.859583      task-clock (msec)         #    0.980 CPUs utilized          
+                 7      context-switches          #    0.049 K/sec                  
+                 0      cpu-migrations            #    0.000 K/sec                  
+                81      page-faults               #    0.571 K/sec                  
+        76,332,974      cycles                    #    0.538 GHz                      (60.97%)
+        77,596,561      instructions              #    1.02  insn per cycle           (63.85%)
+         7,316,459      branches                  #   51.575 M/sec                    (64.83%)
+            69,923      branch-misses             #    0.96% of all branches          (64.86%)
+        49,311,389      L1-dcache-loads           #  347.607 M/sec                    (64.83%)
+            35,812      L1-dcache-load-misses     #    0.07% of all L1-dcache hits    (64.86%)
+           193,863      LLC-loads                 #    1.367 M/sec                    (64.82%)
+             7,335      LLC-load-misses           #    0.05% of all LL-cache hits     (45.08%)
+        28,470,885      L1-icache-loads           #  200.698 M/sec                    (68.17%)
+             4,826      L1-icache-load-misses                                         (61.21%)
+   <not supported>      dTLB-loads                                                  
+                 0      dTLB-load-misses                                              (55.55%)
+   <not supported>      iTLB-loads                                                  
+                 0      iTLB-load-misses                                              (50.84%)
+   <not supported>      L1-dcache-prefetches                                        
+   <not supported>      L1-dcache-prefetch-misses                                   
+
+       0.144757150 seconds time elapsed
+
+
+real	0m0.190s
+user	0m0.144s
+sys	0m0.046s
+Starting Power = 
+Ending Power = 
