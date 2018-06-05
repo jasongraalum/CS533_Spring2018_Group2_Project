@@ -1,0 +1,33 @@
+./case1: Interrupt
+
+ Performance counter stats for './case1 4096 1000000 8':
+
+         40.571563      task-clock (msec)         #    0.939 CPUs utilized          
+                 1      context-switches          #    0.025 K/sec                  
+                 0      cpu-migrations            #    0.000 K/sec                  
+                81      page-faults               #    0.002 M/sec                  
+            82,119      cycles                    #    0.002 GHz                    
+         3,341,713      instructions              #   40.69  insn per cycle         
+           870,153      branches                  #   21.447 M/sec                  
+            32,715      branch-misses             #    3.76% of all branches        
+        12,593,362      L1-dcache-loads           #  310.399 M/sec                  
+            22,396      L1-dcache-load-misses     #    0.18% of all L1-dcache hits  
+           119,501      LLC-loads                 #    2.945 M/sec                  
+             3,129      LLC-load-misses           #    0.05% of all LL-cache hits     (74.92%)
+        13,001,886      L1-icache-loads           #  320.468 M/sec                    (50.31%)
+             5,286      L1-icache-load-misses                                         (25.84%)
+   <not supported>      dTLB-loads                                                  
+               326      dTLB-load-misses                                              (1.23%)
+   <not supported>      iTLB-loads                                                  
+     <not counted>      iTLB-load-misses                                            
+   <not supported>      L1-dcache-prefetches                                        
+   <not supported>      L1-dcache-prefetch-misses                                   
+
+       0.043212480 seconds time elapsed
+
+
+real	0m0.089s
+user	0m0.048s
+sys	0m0.041s
+Starting Power = 
+Ending Power = 

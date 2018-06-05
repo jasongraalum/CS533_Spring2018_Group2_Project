@@ -1,0 +1,32 @@
+
+ Performance counter stats for './case1 4096 6400 8':
+
+     382325.039088      task-clock (msec)         #    0.999 CPUs utilized          
+             9,136      context-switches          #    0.024 K/sec                  
+                 0      cpu-migrations            #    0.000 K/sec                  
+                88      page-faults               #    0.000 K/sec                  
+   232,248,226,974      cycles                    #    0.607 GHz                      (58.33%)
+   231,578,581,705      instructions              #    1.00  insn per cycle           (58.33%)
+    21,079,186,687      branches                  #   55.134 M/sec                    (58.34%)
+        50,673,705      branch-misses             #    0.24% of all branches          (58.33%)
+   147,145,893,453      L1-dcache-loads           #  384.871 M/sec                    (58.33%)
+         1,953,939      L1-dcache-load-misses     #    0.00% of all L1-dcache hits    (58.33%)
+        15,699,198      LLC-loads                 #    0.041 M/sec                    (58.34%)
+           711,936      LLC-load-misses           #    0.00% of all LL-cache hits     (50.01%)
+   126,927,170,431      L1-icache-loads           #  331.988 M/sec                    (50.01%)
+        11,448,129      L1-icache-load-misses                                         (50.01%)
+   <not supported>      dTLB-loads                                                  
+                10      dTLB-load-misses                                              (50.01%)
+   <not supported>      iTLB-loads                                                  
+                16      iTLB-load-misses                                              (50.00%)
+   <not supported>      L1-dcache-prefetches                                        
+   <not supported>      L1-dcache-prefetch-misses                                   
+
+     382.674570003 seconds time elapsed
+
+
+real	6m22.750s
+user	6m22.113s
+sys	0m0.302s
+Starting Power = 
+Ending Power = 
