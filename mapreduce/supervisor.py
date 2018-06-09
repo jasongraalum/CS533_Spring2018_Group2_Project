@@ -157,8 +157,8 @@ def cascade4(filenames, debug = False):
     return
 
 def branchingMarkovCycle(filenames, debug = False, maxIterations = -1, maxTime = 0):
-    procs = listChunks(range(psutil.cpu_count()), 4)
     initialT = time.time()
+    procs = listChunks(range(psutil.cpu_count()), 4)
     if debug:
         print("Data extraction then markov chain sampling cycles for {} seconds:\n    a  \n   / \ \n  b   c\n /\nd".format(maxTime))
     outref = os.fork()
@@ -169,7 +169,7 @@ def branchingMarkovCycle(filenames, debug = False, maxIterations = -1, maxTime =
         fns = split1[c]
         op = psutil.Process(os.getpid())
         op.cpu_affinity(procs[0])
-        op.nice(-10)
+#        op.nice(-10)
     else:
         message = "\ta"
         fns = split1[1 - c]
@@ -224,7 +224,6 @@ def branchingMarkovCycle(filenames, debug = False, maxIterations = -1, maxTime =
 
 def cascadeMarkovMapReduce(filenames, debug = False, maxIterations = -1, maxTime = 0):
     procs = listChunks(range(psutil.cpu_count()), 4)
-    initialT = time.time()
     if debug:
         print("System of 4 processes with queues. map->reduce->markov->sample, running for {} seconds".format(maxTime))
     #Initial Setup: Get the data from the files and split it up
@@ -241,6 +240,7 @@ def cascadeMarkovMapReduce(filenames, debug = False, maxIterations = -1, maxTime
     for d in datalines:
         dataq.put(d)
 
+    initialT = time.time()
     redProc = os.fork()
     stopCondition = False;
     if redProc == 0:
@@ -331,14 +331,97 @@ def cascadeMarkovMapReduce(filenames, debug = False, maxIterations = -1, maxTime
                 os.wait()
     return
 
+def cascadeMarkovSameProcess(filenames, debug = False, maxIterations = -1, maxTime = 0):
+    procs = listChunks(range(psutil.cpu_count()), 4)
+    q = 0
+    if debug:
+        print("Data extraction then markov chain sampling cycles for {} seconds:\n    a  \n   / \ \n  b   c\n /\nd".format(maxTime))
+    dataq = [multiprocessing.Queue() for _ in range(4)]
+    outref = os.fork()
+    split1 = chunkList(filenames)
+    c = random.choice([0,1])
+    if outref == 0:
+        message = "\tb"
+        fns = split1[c]
+        op = psutil.Process(os.getpid())
+        op.cpu_affinity(procs[0])
+        q = 0
+#        op.nice(-10)
+    else:
+        message = "\ta"
+        fns = split1[1 - c]
+        ip = psutil.Process(os.getpid())
+        q = 1
+        ip.cpu_affinity(procs[1])
+#        ip.nice(-10)
+    lines = [item for sublist in [list(data.extractData(fn)) for fn in fns] for item in sublist]
+    split2 = chunkList(lines)
+    cc = random.choice([0,1])
+    inref = os.fork()
+    if inref == 0:
+        oip = psutil.Process(os.getpid())
+        oip.cpu_affinity(procs[2])
+        q = 2
+#        oip.nice(-10)
+        dlines = split2[cc]
+        message = "\tc"
+        if outref == 0:
+            q = 3
+            iip = psutil.Process(os.getpid())
+            iip.cpu_affinity(procs[3])
+            message = "\td"
+    else:
+        dlines = split2[1 - cc]
+    ic = maxIterations
+    stopCondition = False;
+    nDatapoints = len(dlines)
+    prep = [l for l in [data.preprocess(d) for d in dlines] if l is not None]
+    split = [item for sublist in [list(data.splitify(line)) for line in prep] for item in sublist]
+    dataq[(q + 1) % 4].put(split)
+    time.sleep(3)
+    initialT = time.time()
+    print("Data preprocessing ({}) complete, starting timer".format(q))
+    for toProcess in iter(dataq[q].get, None):
+        nGrams = [item for sublist in 
+                    [list(markov.nGrams(l)) for l in toProcess] if
+                        len(sublist) > 0
+                    for item in sublist
+                ]
+        mod = markov.markovNGramModel()
+        for d in nGrams:
+            mod.update(d)
+        dlines = [mod.sampleGen() for _ in range(1000)]
+        split = [line.split(" ") for line in dlines]
+        if(stopCondition):
+            time.sleep(0.1)
+            dataq[(q + 1) % 4].put(None)
+        else:
+            if(debug):
+                print("{}: Sample: {}".format(q,dlines[0]))
+            dataq[(q + 1) % 4].put([line.split(" ") for line in dlines])
+        if(maxIterations >= 0):
+            ic -= 1
+        if(ic == 0 or time.time() - initialT > maxTime):
+            stopCondition = True
+    time.sleep(0.1)
+    dataq[(q + 1) % 4].put(None)
+    if debug:
+        print(message + "({})".format(os.getpid()) + ": ({}|{})".format(fn,len(list(mod.model.iteritems()))))
+    if(inref == 0):
+        os._exit(0)
+    else:
+        os.wait()
+    if(outref == 0):
+        os._exit(0)
+    return
 
 filenames = glob.glob("data/*")
 print(filenames)
 debug = True
-maxTime = 90
-singleCore(filenames, debug = debug)
-branching(filenames, debug = debug)
-cascade4(filenames, debug = debug)
+maxTime = 1
+#singleCore(filenames, debug = debug)
+#branching(filenames, debug = debug)
+#cascade4(filenames, debug = debug)
 branchingMarkovCycle(filenames, debug = debug, maxTime = maxTime)
 cascadeMarkovMapReduce(filenames, debug = debug, maxTime = maxTime)
-
+cascadeMarkovSameProcess(filenames, debug = debug, maxTime = maxTime)
