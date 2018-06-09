@@ -39,7 +39,7 @@ ggplot(f_pmeas)+geom_col(aes(x=loop,y=instr_power))+
 ggtitle("L1 Cache miss vs Loop")+ 
   xlab("No. of loop instructions")+
   ylab("Total Instructions / Power ")+my_theme()
-ggsave(filename="L1cachemiss_pow-meas.png",width=9,height=7,dpi=300)  
+ggsave(filename="Instr_pow-meas.png",width=9,height=7,dpi=300)  
 
 ###############################################################
 
