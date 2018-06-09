@@ -71,7 +71,7 @@ ggtitle("L1 Cache miss vs Loop")+
 
 ggplot(f_pmeas3)+geom_col(aes(x=loop,y=L1cache_pow))+
 ggtitle("L1 Cache loads vs Loop")+ scale_x_log10()+
-facet_wrap(~case)+
+facet_wrap(~case,labeller=labeller(case= fctlb))+
   xlab("No. of loop instructions")+
   ylab("L1 cache loads / Power ")+my_theme()
 
@@ -85,7 +85,7 @@ ggsave(filename="L1cacheLoads_pow-meas.png",width=9,height=7,dpi=300)
 
 
 ggplot(f_pmeas4)+geom_col(aes(x=loop,y=LLC_cache_pow))+
-  facet_wrap(~case)+
+  facet_wrap(~case,labeller=labeller(case= fctlb))+
 ggtitle("LLC Cache Loads vs Loop")+ scale_x_log10()  +
 xlab("No. of loop instructions")+
   ylab("LLC cache loads / Power ")+my_theme()
