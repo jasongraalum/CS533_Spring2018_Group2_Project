@@ -36,7 +36,7 @@ f_pmeas <- mod_pmeas %>%
 
 ggplot(f_pmeas)+geom_col(aes(x=loop,y=instr_power))+
   facet_wrap(~case,labeller=labeller(case= fctlb))+ scale_x_log10()+
-ggtitle("L1 Cache miss vs Loop")+ 
+ggtitle("Instructions vs Loop")+ 
   xlab("No. of loop instructions")+
   ylab("Total Instructions / Power ")+my_theme()
 ggsave(filename="Instr_pow-meas.png",width=9,height=7,dpi=300)  
