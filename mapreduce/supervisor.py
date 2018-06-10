@@ -335,7 +335,7 @@ def cascadeMarkovSameProcess(filenames, debug = False, maxIterations = -1, maxTi
     procs = listChunks(range(psutil.cpu_count()), 4)
     q = 0
     if debug:
-        print("Data extraction then markov chain sampling cycles for {} seconds:\n    a  \n   / \ \n  b   c\n /\nd".format(maxTime))
+        print("4 markov models passing each other generated data in a cycle, then rebuilding on the new data:\n    a  \n   / \ \n  b   c\n /\nd".format(maxTime))
     dataq = [multiprocessing.Queue() for _ in range(4)]
     outref = os.fork()
     split1 = chunkList(filenames)
@@ -380,7 +380,8 @@ def cascadeMarkovSameProcess(filenames, debug = False, maxIterations = -1, maxTi
     dataq[(q + 1) % 4].put(split)
     time.sleep(3)
     initialT = time.time()
-    print("Data preprocessing ({}) complete, starting timer".format(q))
+    if debug:
+        print("Data preprocessing ({}) complete, starting timer".format(q))
     for toProcess in iter(dataq[q].get, None):
         nGrams = [item for sublist in 
                     [list(markov.nGrams(l)) for l in toProcess] if
@@ -390,7 +391,7 @@ def cascadeMarkovSameProcess(filenames, debug = False, maxIterations = -1, maxTi
         mod = markov.markovNGramModel()
         for d in nGrams:
             mod.update(d)
-        dlines = [mod.sampleGen() for _ in range(1000)]
+        dlines = [mod.sampleGen() for _ in range(100)]
         split = [line.split(" ") for line in dlines]
         if(stopCondition):
             time.sleep(0.1)
@@ -415,13 +416,30 @@ def cascadeMarkovSameProcess(filenames, debug = False, maxIterations = -1, maxTi
         os._exit(0)
     return
 
+def countdown(x):
+    for x in reversed(range(x)):
+        print(x + 1)
+        time.sleep(1)
+
 filenames = glob.glob("data/*")
 print(filenames)
-debug = True
-maxTime = 1
+debug = False
+maxTime = 60
 #singleCore(filenames, debug = debug)
 #branching(filenames, debug = debug)
 #cascade4(filenames, debug = debug)
+print "test 1: Branching with no data sharing"
+countdown(3)
 branchingMarkovCycle(filenames, debug = debug, maxTime = maxTime)
+print "done!"
+time.sleep(5)
+print "test 2: Sharing data, different processes"
+countdown(3)
 cascadeMarkovMapReduce(filenames, debug = debug, maxTime = maxTime)
+print "done!"
+time.sleep(5)
+print "test 3: Sharing data, same process"
+countdown(3)
 cascadeMarkovSameProcess(filenames, debug = debug, maxTime = maxTime)
+print "done!"
+time.sleep(5)
