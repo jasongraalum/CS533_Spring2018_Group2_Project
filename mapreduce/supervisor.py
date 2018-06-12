@@ -33,27 +33,28 @@ def chunkList(l, random = True, n = 2):
     else:
         return [[l[i] for i in c] for c in listChunks(l, n)]
 
-def singleCore(filenames, debug = False):
+def singleCore(filenames, debug = False, maxTime = 0):
     if debug:
         print("One process")
-    r = myReducer.reducer()
-    for f in filenames:
-        lines = list(data.extractData(f))
-        prep = [item for sublist in 
-                    [data.preprocess(d) for d in lines] if
-                        sublist is not None 
-                    for item in sublist
-                ]
-        mapd = [item for sublist in 
-                    [list(mapper.map(l)) for l in prep] if
+    initialT = time.time()
+    dlines = [item for sublist in [list(data.extractData(fn)) for fn in filenames] for item in sublist]
+    stopCondition = False;
+    nDatapoints = len(dlines)
+    prep = [l for l in [data.preprocess(d) for d in dlines] if l is not None]
+    split = [item for sublist in [list(data.splitify(line)) for line in prep] for item in sublist]
+    while(not stopCondition):
+        nGrams = [item for sublist in 
+                    [list(markov.nGrams(l)) for l in split] if
                         len(sublist) > 0
                     for item in sublist
                 ]
-        for d in mapd:
-            r.reduce(d)
-    if debug:
-        l = list(r.dictionary.iteritems())
-        print("\t{} files processed. Dictionary of {} instances of {} words made".format(len(filenames), sum([v for _,v in l]), len(l)))
+        mod = markov.markovNGramModel()
+        for d in nGrams:
+            mod.update(d)
+        dlines = [mod.sampleGen() for _ in range(nDatapoints)]
+        split = [line.split(" ") for line in dlines]
+        if(time.time() - initialT > maxTime):
+            stopCondition = True
 
 def branching(filenames, debug = False):
     if debug:
@@ -422,24 +423,19 @@ def countdown(x):
         time.sleep(1)
 
 filenames = glob.glob("data/*")
+case = str(sys.argv[1])
+maxTime = int(sys.argv[2])
 print(filenames)
 debug = False
-maxTime = 60
-#singleCore(filenames, debug = debug)
+if(case == 'single'):
+    singleCore(filenames, debug = debug, maxTime = maxTime)
+elif(case == 'branching'):
+    branchingMarkovCycle(filenames, debug = debug, maxTime = maxTime)
+elif(case == 'cascade'):
+    cascadeMarkovSameProcess(filenames, debug = debug, maxTime = maxTime)
+elif(case == 'cascade_procs'):
+    cascadeMarkovMapReduce(filenames, debug = debug, maxTime = maxTime)
+
+
 #branching(filenames, debug = debug)
 #cascade4(filenames, debug = debug)
-print "test 1: Branching with no data sharing"
-countdown(3)
-branchingMarkovCycle(filenames, debug = debug, maxTime = maxTime)
-print "done!"
-time.sleep(5)
-print "test 2: Sharing data, different processes"
-countdown(3)
-cascadeMarkovMapReduce(filenames, debug = debug, maxTime = maxTime)
-print "done!"
-time.sleep(5)
-print "test 3: Sharing data, same process"
-countdown(3)
-cascadeMarkovSameProcess(filenames, debug = debug, maxTime = maxTime)
-print "done!"
-time.sleep(5)
