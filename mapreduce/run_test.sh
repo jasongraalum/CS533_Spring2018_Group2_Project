@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Get a list of all files beginning with "case" but not *.cpp files
-super_args={ 0, 1, 2, 3 }
+super_args={ "single", "branching", "cascade", "cascade_procs" }
 echo ${super_args}
 # Loop on list of test cases
 for test in $super_args
@@ -17,7 +17,7 @@ do
 #            read start_power
             fswebcam -r 1280x720 --no-banner ${out_file}.start.jpg
 
-            { time /usr/src/linux/tools/perf/perf stat -d -d -d -d python ./supervisor.py $test; } &> ${out_file}
+            { time /usr/src/linux/tools/perf/perf stat -d -d -d -d python ./supervisor.py $test 180; } &> ${out_file}
 
 #           read end_power
             fswebcam -r 1280x720 --no-banner ${out_file}.end.jpg
