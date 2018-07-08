@@ -33,6 +33,4 @@ int main(int argc, char ** argv) {
             }
         }
     }
-    for (long int i = 0; i < loop_count; i=i+loop_inc) {
-    }
 }
